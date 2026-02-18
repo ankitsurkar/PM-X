@@ -5,8 +5,6 @@ import * as z from 'zod';
 import { 
   ArrowRight, 
   CheckCircle2, 
-  Linkedin, 
-  Youtube, 
   Mail, 
   Phone,
   Loader2,
@@ -68,9 +66,14 @@ const getInitialConfig = () => {
   return firebaseConfig;
 };
 
-const app = initializeApp(getInitialConfig());
-const auth = getAuth(app);
-const db = getFirestore(app);
+const hasFirebaseKeys = (config: Record<string, string>) =>
+  Boolean(config.apiKey && config.authDomain && config.projectId);
+
+const initialConfig = getInitialConfig();
+const firebaseEnabled = hasFirebaseKeys(initialConfig);
+const app = firebaseEnabled ? initializeApp(initialConfig) : null;
+const auth = app ? getAuth(app) : null;
+const db = app ? getFirestore(app) : null;
 // @ts-ignore
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'stepsmart-prod';
 
@@ -82,54 +85,48 @@ const enrollmentSchema = z.object({
   intent: z.enum(["brochure", "enroll"]),
 });
 
-// --- High-Fidelity Logo Component ---
+const logoSrc = "/stepsmart-logo.png";
+const sanketPhotoSrc = "/mentor-sanket.jpg";
+const ankitPhotoSrc = "/mentor-ankit.jpg";
+const brochurePdfSrc = "/PM-X-Accelerator-Brochure.pdf";
+const demoLeadsKey = "pmx_demo_leads";
+
 const Logo = ({ className = "h-10" }) => (
-  <div className={`flex items-center gap-3 ${className}`}>
-    <div className="h-full aspect-square">
-      <svg viewBox="0 0 100 100" className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path 
-          d="M50 10L18 28.5V71.5L50 90L82 71.5V45" 
-          stroke="#188ab2" 
-          strokeWidth="10" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-        <path 
-          d="M32 78L88 22" 
-          stroke="#188ab2" 
-          strokeWidth="10" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-        <path 
-          d="M88 22H65M88 22V45" 
-          stroke="#188ab2" 
-          strokeWidth="10" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-        <path 
-          d="M30 48L42 36" 
-          stroke="#188ab2" 
-          strokeWidth="10" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-        <path 
-          d="M45 68L62 51" 
-          stroke="#188ab2" 
-          strokeWidth="10" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-    <div className="flex flex-col leading-none">
-      <span className="font-bold text-2xl tracking-tight text-[#188ab2]">STEPSMART</span>
-      <span className="text-[7px] font-bold text-slate-500 tracking-[0.2em] uppercase mt-0.5">Your Steps To Success</span>
-    </div>
-  </div>
+  <img
+    src={logoSrc}
+    alt="StepSmart logo"
+    className={`${className} w-auto object-contain`}
+  />
 );
+
+const startBrochureDownload = () => {
+  const link = document.createElement('a');
+  link.href = brochurePdfSrc;
+  link.download = 'PM-X-Accelerator-Brochure.pdf';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const saveLeadToDemoDB = (lead: any) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem(demoLeadsKey) || "[]");
+    const next = [
+      ...existing,
+      {
+        ...lead,
+        source: "website-form",
+        submittedAt: new Date().toISOString()
+      }
+    ];
+    localStorage.setItem(demoLeadsKey, JSON.stringify(next));
+    (globalThis as any).__PMX_DEMO_LEADS__ = next;
+  } catch (e) {
+    console.error("Demo DB write failed", e);
+  }
+};
 
 const Button = ({ children, className, variant = "primary", isLoading, ...props }: any) => {
   const baseStyles = "inline-flex items-center justify-center rounded-md px-6 py-2.5 font-semibold transition-all duration-200 focus:outline-none disabled:opacity-50 active:scale-95";
@@ -154,6 +151,24 @@ export default function App() {
   const [formIntent, setFormIntent] = useState('enroll'); 
 
   useEffect(() => {
+    const existingFavicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
+    if (existingFavicon) {
+      existingFavicon.href = logoSrc;
+      return;
+    }
+
+    const favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    favicon.type = 'image/png';
+    favicon.href = logoSrc;
+    document.head.appendChild(favicon);
+  }, []);
+
+  useEffect(() => {
+    if (!auth) {
+      return;
+    }
+
     const initAuth = async () => {
       try {
         await signInAnonymously(auth);
@@ -170,11 +185,25 @@ export default function App() {
   });
 
   const onSubmit = async (data: any) => {
+    setEnrollmentStatus('loading');
+    saveLeadToDemoDB(data);
+
+    if (!db) {
+      setEnrollmentStatus('success');
+      if (data.intent === 'brochure') {
+        setTimeout(() => {
+          startBrochureDownload();
+        }, 1000);
+      }
+      return;
+    }
+
     if (!user) {
+      setEnrollmentStatus('idle');
       alert("System initializing. Please wait a moment and try again.");
       return;
     }
-    setEnrollmentStatus('loading');
+
     try {
       const enrollmentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
       await addDoc(enrollmentsRef, {
@@ -185,7 +214,7 @@ export default function App() {
       setEnrollmentStatus('success');
       if (data.intent === 'brochure') {
         setTimeout(() => {
-          window.open('https://www.stepsmart.net/brochure.pdf', '_blank');
+          startBrochureDownload();
         }, 1000);
       }
     } catch (err) {
@@ -205,14 +234,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#188ab2]/10">
       <nav className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-          <Logo className="h-10" />
+        <div className="container mx-auto px-6 h-24 flex items-center justify-between">
+          <Logo className="h-20" />
           <div className="hidden md:flex items-center gap-10 text-sm font-semibold text-slate-600">
             <a href="#about" className="hover:text-[#188ab2] transition-colors">About Us</a>
-            <a href="#accelerator" className="hover:text-[#188ab2] transition-colors">Mentorship Accelerator</a>
+            <a href="#accelerator" className="hover:text-[#188ab2] transition-colors">PM-X Accelerator</a>
             <a href="#mentors" className="hover:text-[#188ab2] transition-colors">Mentors</a>
-            <Button variant="primary" onClick={() => document.getElementById('enroll').scrollIntoView({ behavior: 'smooth' })}>
-              Get Started
+            <Button variant="primary" onClick={() => document.getElementById('enroll')?.scrollIntoView({ behavior: 'smooth' })}>
+              Enroll Now
             </Button>
           </div>
           <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -223,15 +252,15 @@ export default function App() {
 
       {/* Mobile Nav */}
       {isMenuOpen && (
-        <div className="md:hidden fixed top-20 left-0 w-full bg-white border-b border-slate-100 z-40 p-6 flex flex-col gap-4 shadow-xl animate-fade-in">
+        <div className="md:hidden fixed top-24 left-0 w-full bg-white border-b border-slate-100 z-40 p-6 flex flex-col gap-4 shadow-xl animate-fade-in">
           <a href="#about" onClick={() => setIsMenuOpen(false)} className="font-bold">About Us</a>
-          <a href="#accelerator" onClick={() => setIsMenuOpen(false)} className="font-bold">Mentorship Accelerator</a>
+          <a href="#accelerator" onClick={() => setIsMenuOpen(false)} className="font-bold">PM-X Accelerator</a>
           <a href="#mentors" onClick={() => setIsMenuOpen(false)} className="font-bold">Mentors</a>
           <Button variant="primary" onClick={() => { setIsMenuOpen(false); handleActionClick('enroll'); }}>Enroll Now</Button>
         </div>
       )}
 
-      <section className="pt-44 pb-28 md:pt-56 md:pb-40 bg-white">
+      <section className="pt-48 pb-28 md:pt-56 md:pb-40 bg-white">
         <div className="container mx-auto px-6 text-center max-w-5xl">
           <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 leading-[1.05] text-slate-900">
             Helping Professionals make <br />
@@ -286,16 +315,16 @@ export default function App() {
       <section id="accelerator" className="py-24 bg-white">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-slate-900">The PM-X Mentorship Accelerator</h2>
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-slate-900">The PM-X Accelerator</h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto font-medium">
               Designed specifically for <span className="text-[#188ab2] underline decoration-[#188ab2]/30 underline-offset-8">non-PMs</span> who want to transition to Product Management.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 text-center">
             {[
-              { title: "Personalized Coaching", desc: "Weekly 1:1 sessions to unblock your specific career challenges." },
+              { title: "Live Mentorship", desc: "Weekly live sessions to unblock your specific career challenges." },
               { title: "Real-World Projects", desc: "Build a portfolio of PM case studies using AI-driven tools." },
-              { title: "Interview Guarantee", desc: "Mock interviews and referrals to land your first high-growth role." }
+              { title: "Interview Practise", desc: "Mock interviews and referrals to land your first high-growth role." }
             ].map((card, i) => (
               <div key={i} className="bg-slate-50 p-10 rounded-2xl border border-slate-100 hover:border-[#188ab2]/40 transition-all group shadow-sm">
                 <h3 className="text-xl font-bold mb-4 group-hover:text-[#188ab2] transition-colors">{card.title}</h3>
@@ -311,19 +340,27 @@ export default function App() {
           <h2 className="text-3xl font-bold mb-16 text-slate-900">Meet the Mentors</h2>
           <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col items-center">
-              <div className="w-24 h-24 bg-slate-100 rounded-full mb-6 flex items-center justify-center border-2 border-white shadow-md">
-                <User className="h-12 w-12 text-slate-400" />
+              <div className="w-24 h-24 rounded-full mb-6 border-2 border-white shadow-md overflow-hidden">
+                <img
+                  src={sanketPhotoSrc}
+                  alt="Sanket"
+                  className="w-full h-full object-cover object-top"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-1 text-slate-900">Sahil</h3>
-              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Lead Mentor</p>
+              <h3 className="text-2xl font-bold mb-1 text-slate-900">Sanket</h3>
+              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Senior Product Manager - Mastercard</p>
               <p className="text-slate-500 leading-relaxed italic">"Helping professionals break barriers into product roles."</p>
             </div>
             <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col items-center">
-              <div className="w-24 h-24 bg-slate-100 rounded-full mb-6 flex items-center justify-center border-2 border-white shadow-md">
-                <User className="h-12 w-12 text-slate-400" />
+              <div className="w-24 h-24 rounded-full mb-6 border-2 border-white shadow-md overflow-hidden">
+                <img
+                  src={ankitPhotoSrc}
+                  alt="Ankit"
+                  className="w-full h-full object-cover object-top"
+                />
               </div>
               <h3 className="text-2xl font-bold mb-1 text-slate-900">Ankit</h3>
-              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Growth Strategist</p>
+              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Product Manager 2 - Microsoft</p>
               <p className="text-slate-500 leading-relaxed italic">"Mastering recruitment cycles for senior pivots."</p>
             </div>
           </div>
@@ -409,10 +446,8 @@ export default function App() {
 
       <footer className="bg-white py-12 border-t border-slate-100 text-center">
         <div className="container mx-auto px-6">
-          <Logo className="h-10 mb-8 mx-auto justify-center" />
-          <div className="flex justify-center gap-8 mb-8 text-slate-400">
-            <a href="#" className="hover:text-[#188ab2] transition-colors"><Linkedin /></a>
-            <a href="#" className="hover:text-[#188ab2] transition-colors"><Youtube /></a>
+          <Logo className="h-56 mb-8 mx-auto" />
+          <div className="flex justify-center mb-8 text-slate-400">
             <a href="mailto:administrator@stepsmart.net" className="hover:text-[#188ab2] transition-colors"><Mail /></a>
           </div>
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">© 2026 StepSmart. All rights reserved.</p>
