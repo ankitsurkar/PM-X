@@ -397,7 +397,7 @@ function LandingPage() {
                   className="w-full h-full object-cover object-top"
                 />
               </div>
-              <h3 className="text-2xl font-bold mb-1 text-slate-900">Ankit</h3>
+              <h3 className="text-2xl font-bold mb-1 text-slate-900">Ankit </h3>
               <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Product Manager 2 - Microsoft</p>
               <p className="text-slate-500 leading-relaxed italic">"PM mentor and product expert, turning ambiguity into clarity and scaling enterprise grade AI products."</p>
             </div>
