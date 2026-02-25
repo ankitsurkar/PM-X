@@ -1,12 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }, 
-    {
       "source": "/learn/:path*",
       "destination": "https://stepsmart-backend-lyart.vercel.app/:path*"
+    },
+    {
+      "source": "/learn",
+      "destination": "https://stepsmart-backend-lyart.vercel.app"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
