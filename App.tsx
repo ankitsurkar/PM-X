@@ -278,6 +278,7 @@ function LandingPage() {
             <a href="#about" className="hover:text-[#188ab2] transition-colors">About Us</a>
             <a href="#accelerator" className="hover:text-[#188ab2] transition-colors">PM-X Accelerator</a>
             <a href="#mentors" className="hover:text-[#188ab2] transition-colors">Mentors</a>
+            <a href="/learn" className="px-5 py-2 rounded-full border border-[#188ab2] text-[#188ab2] hover:bg-[#188ab2] hover:text-white transition-colors">Login</a>
             <Button variant="primary" onClick={() => document.getElementById('enroll')?.scrollIntoView({ behavior: 'smooth' })}>
               Enroll Now
             </Button>
@@ -294,6 +295,7 @@ function LandingPage() {
           <a href="#about" onClick={() => setIsMenuOpen(false)} className="font-bold">About Us</a>
           <a href="#accelerator" onClick={() => setIsMenuOpen(false)} className="font-bold">PM-X Accelerator</a>
           <a href="#mentors" onClick={() => setIsMenuOpen(false)} className="font-bold">Mentors</a>
+          <a href="/learn" className="font-bold text-[#188ab2]">Login</a>
           <Button variant="primary" onClick={() => { setIsMenuOpen(false); handleActionClick('enroll'); }}>Enroll Now</Button>
         </div>
       )}
