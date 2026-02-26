@@ -303,7 +303,7 @@ function LandingPage() {
       <section className="pt-48 pb-28 md:pt-56 md:pb-40 bg-white">
         <div className="container mx-auto px-6 text-center max-w-5xl">
           <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 leading-[1.05] text-slate-900">
-            Helping Professionals make <br />
+            Helping professionals make <br />
             <span className="text-[#188ab2]">smarter moves with AI</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">
