@@ -364,7 +364,7 @@ function LandingPage() {
             {[
               { title: "Live Mentorship", desc: "Weekly live sessions to unblock your specific career challenges." },
               { title: "Real-World Projects", desc: "Build a portfolio of PM case studies using AI-driven tools." },
-              { title: "Interview Practise", desc: "Mock interviews and referrals to land your first high-growth role." }
+              { title: "Interview Practice", desc: "Mock interviews and referrals to land your first high-growth role." }
             ].map((card, i) => (
               <div key={i} className="bg-slate-50 p-10 rounded-2xl border border-slate-100 hover:border-[#188ab2]/40 transition-all group shadow-sm">
                 <h3 className="text-xl font-bold mb-4 group-hover:text-[#188ab2] transition-colors">{card.title}</h3>
