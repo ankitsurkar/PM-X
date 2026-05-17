@@ -187,33 +187,23 @@ function LandingPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const existingFavicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
-    if (existingFavicon) {
-      existingFavicon.href = logoSrc;
-      return;
-    }
-
-    const favicon = document.createElement('link');
-    favicon.rel = 'icon';
-    favicon.type = 'image/png';
-    favicon.href = logoSrc;
-    document.head.appendChild(favicon);
-  }, []);
-
-  useEffect(() => {
-    if (!auth) {
-      return;
-    }
-
-    const initAuth = async () => {
+    // Tracking analytics of page visits
+    const trackVisit = async () => {
       try {
-        await signInAnonymously(auth);
-      } catch (e) { console.error("Firebase Auth Error", e); }
+        if (db) {
+          const analyticsRef = collection(db, 'artifacts', appId, 'public', 'data', 'analytics');
+          await addDoc(analyticsRef, {
+            page: 'landing_page',
+            timestamp: serverTimestamp(),
+            userAgent: navigator.userAgent
+          });
+        }
+      } catch (e) {
+        console.error("Analytics failed", e);
+      }
     };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
+    trackVisit();
+  }, [db]);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(enrollmentSchema),
@@ -228,7 +218,6 @@ function LandingPage() {
       }, 1000);
       return;
     }
-    // Removed navigation to /auth page per user request
   };
 
   const onSubmit = async (data: any) => {
@@ -240,17 +229,11 @@ function LandingPage() {
       return;
     }
 
-    if (!user) {
-      setEnrollmentStatus('idle');
-      alert("System initializing. Please wait a moment and try again.");
-      return;
-    }
-
     try {
       const enrollmentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
       await addDoc(enrollmentsRef, {
         ...data,
-        userId: user.uid,
+        userId: user?.uid || 'anonymous',
         submittedAt: serverTimestamp(),
       });
 
@@ -272,15 +255,15 @@ function LandingPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#188ab2]/10">
       <nav className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="container mx-auto px-6 h-24 flex items-center justify-between">
-          <Logo className="h-20" />
+        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+          <Logo className="h-14" />
           <div className="hidden md:flex items-center gap-10 text-sm font-semibold text-slate-600">
-            <a href="#about" className="hover:text-[#188ab2] transition-colors">About Us</a>
-            <a href="#accelerator" className="hover:text-[#188ab2] transition-colors">PM-X Accelerator</a>
+            <a href="#who-is-it-for" className="hover:text-[#188ab2] transition-colors">Who is it for?</a>
+            <a href="https://calendly.com/sanket-stepsmart" target="_blank" rel="noreferrer" className="hover:text-[#188ab2] transition-colors">Book 1:1</a>
             <a href="#mentors" className="hover:text-[#188ab2] transition-colors">Mentors</a>
             <a href="/learn" className="px-5 py-2 rounded-full border border-[#188ab2] text-[#188ab2] hover:bg-[#188ab2] hover:text-white transition-colors">Login</a>
             <Button variant="primary" onClick={() => document.getElementById('enroll')?.scrollIntoView({ behavior: 'smooth' })}>
-              Enroll Now
+              Apply Now
             </Button>
           </div>
           <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -291,117 +274,140 @@ function LandingPage() {
 
       {/* Mobile Nav */}
       {isMenuOpen && (
-        <div className="md:hidden fixed top-24 left-0 w-full bg-white border-b border-slate-100 z-40 p-6 flex flex-col gap-4 shadow-xl animate-fade-in">
-          <a href="#about" onClick={() => setIsMenuOpen(false)} className="font-bold">About Us</a>
-          <a href="#accelerator" onClick={() => setIsMenuOpen(false)} className="font-bold">PM-X Accelerator</a>
+        <div className="md:hidden fixed top-20 left-0 w-full bg-white border-b border-slate-100 z-40 p-6 flex flex-col gap-4 shadow-xl animate-fade-in">
+          <a href="#who-is-it-for" onClick={() => setIsMenuOpen(false)} className="font-bold">Who is it for?</a>
+          <a href="https://calendly.com/sanket-stepsmart" target="_blank" rel="noreferrer" className="font-bold">Book 1:1</a>
           <a href="#mentors" onClick={() => setIsMenuOpen(false)} className="font-bold">Mentors</a>
-          <a href="/learn" className="font-bold text-[#188ab2]">Login</a>
-          <Button variant="primary" onClick={() => { setIsMenuOpen(false); handleActionClick('enroll'); }}>Enroll Now</Button>
+          <Button variant="primary" onClick={() => { setIsMenuOpen(false); handleActionClick('enroll'); }}>Apply Now</Button>
         </div>
       )}
 
-      <section className="pt-48 pb-28 md:pt-56 md:pb-40 bg-white">
+      {/* Hero Section - High Conversion Headline */}
+      <section className="pt-40 pb-20 bg-white">
         <div className="container mx-auto px-6 text-center max-w-5xl">
-          <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 leading-[1.05] text-slate-900">
-            Helping professionals make <br />
-            <span className="text-[#188ab2]">smarter moves with AI</span>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1] text-slate-900">
+            Break into <span className="text-[#188ab2]">Product Management</span> without an MBA or IIT tag
           </h1>
-          <p className="text-xl md:text-2xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Transition into high-growth Product Management roles with expert guidance, practical roadmaps, and AI-powered learning.
+          <p className="text-xl md:text-2xl text-slate-500 mb-12 max-w-3xl mx-auto leading-relaxed">
+            For engineers and professionals who are ready to make the switch. Lead with identity and outcome, not just a certificate.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a
-              href="https://chat.whatsapp.com/BCeLjXhQHrxFxOlxkb7DPc"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-md px-10 py-4 font-semibold transition-all duration-200 bg-[#188ab2] text-white hover:bg-[#157a9d] shadow-sm text-lg"
+          <div className="flex flex-col items-center gap-4 mb-16">
+            <Button 
+              variant="primary" 
+              className="px-12 py-5 text-xl font-bold rounded-full shadow-2xl"
+              onClick={() => handleActionClick('enroll')}
             >
-              Join Our Community <ExternalLink className="ml-2 h-5 w-5" />
-            </a>
+              Apply for PM-X Accelerator
+            </Button>
+            <button 
+              onClick={() => handleActionClick('brochure')}
+              className="text-slate-400 text-sm font-medium hover:text-[#188ab2] underline underline-offset-4 transition-colors"
+            >
+              Not sure yet? Download the curriculum first.
+            </button>
+          </div>
+
+          <div className="relative w-full max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl group">
+            <img 
+              src="/hero_image.png" 
+              alt="PM-X Accelerator Outcomes" 
+              className="w-full h-auto object-cover opacity-90"
+            />
           </div>
         </div>
       </section>
 
-      <section id="about" className="py-24 bg-slate-50 border-y border-slate-100">
-        <div className="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <div className="space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Our Mission & Vision</h2>
-            <p className="text-lg text-slate-600 leading-relaxed">
-              StepSmart was founded with a simple but powerful idea: learning is most effective when guided by experienced mentors who have walked the path before you.
-            </p>
-            <p className="text-lg text-slate-600 leading-relaxed font-semibold italic text-[#188ab2]">
-              "If a student has the skills and domain knowledge, they deserve a step at their dream job."
-            </p>
-            <p className="text-slate-600 leading-relaxed">
-              We're building a community for students and professionals where support, mentorship, and progress go hand in hand.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: "Expert Mentors", icon: <Users className="h-6 w-6" /> },
-              { label: "Practical Roadmaps", icon: <CheckCircle2 className="h-6 w-6" /> },
-              { label: "Industry Partners", icon: <Briefcase className="h-6 w-6" /> },
-              { label: "Weekly Growth", icon: <Calendar className="h-6 w-6" /> }
-            ].map((box, i) => (
-              <div key={i} className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm text-center flex flex-col items-center justify-center">
-                <div className="text-[#188ab2] mb-4">{box.icon}</div>
-                <span className="font-bold text-slate-900">{box.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="accelerator" className="py-24 bg-white">
+      <section id="who-is-it-for" className="py-24 bg-slate-50 border-y border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-slate-900">The PM-X Accelerator</h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto font-medium">
-              Designed specifically for <span className="text-[#188ab2] underline decoration-[#188ab2]/30 underline-offset-8">non-PMs</span> who want to transition to Product Management.
-            </p>
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">Who is this for?</h2>
+            <p className="text-lg text-slate-600">The PM-X Accelerator is designed for builders ready to take the next step in their career.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 text-center">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { title: "Live Mentorship", desc: "Weekly live sessions to unblock your specific career challenges." },
-              { title: "Real-World Projects", desc: "Build a portfolio of PM case studies using AI-driven tools." },
-              { title: "Interview Practice", desc: "Mock interviews and referrals to land your first high-growth role." }
-            ].map((card, i) => (
-              <div key={i} className="bg-slate-50 p-10 rounded-2xl border border-slate-100 hover:border-[#188ab2]/40 transition-all group shadow-sm">
-                <h3 className="text-xl font-bold mb-4 group-hover:text-[#188ab2] transition-colors">{card.title}</h3>
-                <p className="text-slate-500 leading-relaxed">{card.desc}</p>
+              { label: "Software Engineers", desc: "Technical minds wanting to move from 'how to build' to 'what to build'.", icon: <Users className="h-8 w-8" /> },
+              { label: "Aspiring PMs", desc: "Non-PM professionals looking for a structured, real-world entry path.", icon: <CheckCircle2 className="h-8 w-8" /> },
+              { label: "Business Analysts", desc: "Analysts wanting to own the product lifecycle and drive strategy.", icon: <Briefcase className="h-8 w-8" /> },
+              { label: "Recent Graduates", desc: "Hungry talent wanting to bypass the 'lack of experience' trap.", icon: <Calendar className="h-8 w-8" /> }
+            ].map((box, i) => (
+              <div key={i} className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+                <div className="text-[#188ab2] mb-6">{box.icon}</div>
+                <h3 className="font-bold text-xl text-slate-900 mb-3">{box.label}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{box.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="batch-details" className="py-24 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="max-w-5xl mx-auto bg-slate-900 rounded-[3rem] p-12 md:p-20 text-white relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 p-8">
+              <span className="bg-[#188ab2] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">Next Batch: 1st June</span>
+            </div>
+            <div className="grid md:grid-cols-2 gap-16 items-center">
+              <div>
+                <h2 className="text-4xl md:text-5xl font-extrabold mb-8 tracking-tight">The PM-X Accelerator</h2>
+                <ul className="space-y-4 mb-10">
+                  {[
+                    "Live Mentorship with Industry Experts",
+                    "Real-world Portfolio Projects",
+                    "Mock Interviews & Referrals",
+                    "AI-Powered Learning Roadmap"
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-center gap-3 text-slate-300">
+                      <CheckCircle2 className="h-5 w-5 text-[#188ab2]" /> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-10 border border-white/20 text-center">
+                <p className="text-slate-400 font-bold uppercase tracking-widest mb-2 text-sm">Join the Next Cohort</p>
+                <div className="text-4xl font-bold mb-4">Batch starts 1st June</div>
+                <p className="text-slate-400 text-sm mb-8 italic">Limited seats per cohort to maintain 1:1 focus. Apply today to reserve your spot.</p>
+                <Button variant="primary" className="w-full py-4 text-lg" onClick={() => handleActionClick('enroll')}>Secure Your Seat</Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section id="mentors" className="py-24 bg-slate-50">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-16 text-slate-900">Meet the Mentors</h2>
-          <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col items-center">
-              <div className="w-24 h-24 rounded-full mb-6 border-2 border-white shadow-md overflow-hidden">
+          <h2 className="text-4xl font-bold mb-16 text-slate-900">Learn from Professionals</h2>
+          <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+            <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02] hover:shadow-xl">
+              <div className="w-32 h-32 rounded-full mb-8 border-4 border-white shadow-xl overflow-hidden">
                 <img
                   src={sanketPhotoSrc}
                   alt="Sanket"
                   className="w-full h-full object-cover object-top"
                 />
               </div>
-              <h3 className="text-2xl font-bold mb-1 text-slate-900">Sanket</h3>
-              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Senior Product Manager - Mastercard</p>
-              <p className="text-slate-500 leading-relaxed italic">"Helping professionals break barriers into product roles."</p>
+              <h3 className="text-3xl font-bold mb-2 text-slate-900">Sanket</h3>
+              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-6">Senior Product Manager - Mastercard</p>
+              <div className="text-slate-500 leading-relaxed space-y-4 text-left border-t pt-6 w-full">
+                <p>• Successfully mentored 100+ professionals into high-growth PM roles.</p>
+                <p>• Expert in behavioural interviews and product sense frameworks.</p>
+                <p>• Specialist in scaling fintech products for the global market.</p>
+              </div>
             </div>
-            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col items-center">
-              <div className="w-24 h-24 rounded-full mb-6 border-2 border-white shadow-md overflow-hidden">
+            <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02] hover:shadow-xl">
+              <div className="w-32 h-32 rounded-full mb-8 border-4 border-white shadow-xl overflow-hidden">
                 <img
                   src={ankitPhotoSrc}
                   alt="Ankit"
                   className="w-full h-full object-cover object-top"
                 />
               </div>
-              <h3 className="text-2xl font-bold mb-1 text-slate-900">Ankit </h3>
-              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-4">Product Manager 2 - Microsoft</p>
-              <p className="text-slate-500 leading-relaxed italic">"PM mentor and product expert, turning ambiguity into clarity and scaling enterprise grade AI products."</p>
+              <h3 className="text-3xl font-bold mb-2 text-slate-900">Ankit</h3>
+              <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-6">Product Manager 2 - Microsoft</p>
+              <div className="text-slate-500 leading-relaxed space-y-4 text-left border-t pt-6 w-full">
+                <p>• Leading enterprise-grade AI product development at Microsoft.</p>
+                <p>• Expert in turning ambiguity into clarity for complex product strategy.</p>
+                <p>• Specialist in scaling AI-native products from 0 to 1.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -409,17 +415,25 @@ function LandingPage() {
 
       <section className="py-24 bg-white">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-16 text-slate-900">What Our Mentees Say</h2>
+          <h2 className="text-4xl font-bold mb-16 text-slate-900">Proof of Progress</h2>
           <div className="grid md:grid-cols-3 gap-8 text-left">
             {[
-              { name: "Bharat", text: "Stepsmart changed my career. They helped me figure out what to focus on." },
-              { name: "Rohit", text: "Gave me step-by-step guidance and mock interviews that felt real." },
-              { name: "Nishtha Jain", text: "Ankit helped me break down a vague case study into actionable chunks." }
+              { name: "Nishtha", role: "Product Management Mentee", text: "Ankit helped me break down a vague case studies into actionable chunks helping me land the PM job" },
+              { name: "Gauri", role: "PM-X Accelerator Student", text: "The PM-X course helped me to land the PM job. A must take course for aspiring PM's. It is well structured and curated" },
+              { name: "Riya", role: "Product Strategy Mentee", text: "Sanket has helped me in structure my thoughts , such that now I am prepared for any interveiw confidently" }
             ].map((t, i) => (
-              <div key={i} className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-                <Quote className="text-[#188ab2]/20 h-10 w-10 mb-6" />
-                <p className="text-slate-600 italic mb-8 leading-relaxed">"{t.text}"</p>
-                <div className="font-bold text-slate-900">{t.name}</div>
+              <div key={i} className="bg-slate-50 p-10 rounded-3xl border border-slate-100 relative group transition-all hover:bg-[#188ab2]/5">
+                <Quote className="text-[#188ab2]/10 h-16 w-16 absolute top-4 right-4" />
+                <div className="mb-8">
+                  <div className="text-xs font-bold text-[#188ab2] uppercase tracking-widest mb-1">{t.role}</div>
+                  <p className="text-slate-600 italic leading-relaxed text-lg">"{t.text}"</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#188ab2]/20 flex items-center justify-center font-bold text-[#188ab2]">
+                    {t.name[0]}
+                  </div>
+                  <div className="font-bold text-slate-900">{t.name}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -494,13 +508,44 @@ function LandingPage() {
         </div>
       </section>
 
-      <footer className="bg-white py-12 border-t border-slate-100 text-center">
+      <footer className="bg-slate-50 py-20 border-t border-slate-100">
         <div className="container mx-auto px-6">
-          <Logo className="h-56 mb-8 mx-auto" />
-          <div className="flex justify-center mb-8 text-slate-400">
-            <a href="mailto:administrator@stepsmart.net" className="hover:text-[#188ab2] transition-colors"><Mail /></a>
+          <div className="grid md:grid-cols-3 gap-16 mb-16 text-left">
+            <div className="col-span-1">
+              <Logo className="h-14 mb-8" />
+              <p className="text-slate-500 text-sm leading-relaxed max-w-xs">
+                Helping engineers and non-PMs break into Product Management without an MBA or IIT tag. Expert mentorship and real-world outcomes.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 mb-6">Quick Links</h4>
+              <ul className="space-y-4 text-slate-500 text-sm">
+                <li><a href="#who-is-it-for" className="hover:text-[#188ab2]">Who is it for?</a></li>
+                <li><a href="#batch-details" className="hover:text-[#188ab2]">Batch Details</a></li>
+                <li><a href="#mentors" className="hover:text-[#188ab2]">Mentors</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 mb-6">Join Our Community</h4>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                Stay updated with free resources, case study deep-dives, and networking opportunities.
+              </p>
+              <a 
+                href="https://chat.whatsapp.com/BCeLjXhQHrxFxOlxkb7DPc" 
+                target="_blank" 
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-[#188ab2] font-bold hover:underline"
+              >
+                Join the WhatsApp Community <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
           </div>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">© 2026 StepSmart. All rights reserved.</p>
+          <div className="pt-12 border-t border-slate-200 flex flex-col md:row items-center justify-between gap-6">
+            <div className="flex gap-6 text-slate-400">
+              <a href="mailto:administrator@stepsmart.net" className="hover:text-[#188ab2] transition-colors"><Mail /></a>
+            </div>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">© 2026 StepSmart. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
