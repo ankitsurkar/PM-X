@@ -387,11 +387,9 @@ function LandingPage() {
               </div>
               <h3 className="text-3xl font-bold mb-2 text-slate-900">Sanket</h3>
               <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-6">Senior Product Manager - Mastercard</p>
-              <div className="text-slate-500 leading-relaxed space-y-4 text-left border-t pt-6 w-full">
-                <p>• Successfully mentored 100+ professionals into high-growth PM roles.</p>
-                <p>• Expert in behavioural interviews and product sense frameworks.</p>
-                <p>• Specialist in scaling fintech products for the global market.</p>
-              </div>
+              <p className="text-slate-500 leading-relaxed text-left border-t pt-6 w-full">
+                Successfully mentored 100+ professionals into high-growth PM roles. Expert in behavioral interviews and product sense frameworks, with deep specialization in scaling fintech products for the global market.
+              </p>
             </div>
             <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02] hover:shadow-xl">
               <div className="w-32 h-32 rounded-full mb-8 border-4 border-white shadow-xl overflow-hidden">
@@ -403,11 +401,9 @@ function LandingPage() {
               </div>
               <h3 className="text-3xl font-bold mb-2 text-slate-900">Ankit</h3>
               <p className="text-[#188ab2] text-sm font-bold uppercase tracking-widest mb-6">Product Manager 2 - Microsoft</p>
-              <div className="text-slate-500 leading-relaxed space-y-4 text-left border-t pt-6 w-full">
-                <p>• Leading enterprise-grade AI product development at Microsoft.</p>
-                <p>• Expert in turning ambiguity into clarity for complex product strategy.</p>
-                <p>• Specialist in scaling AI-native products from 0 to 1.</p>
-              </div>
+              <p className="text-slate-500 leading-relaxed text-left border-t pt-6 w-full">
+                Leads enterprise-grade AI product development at Microsoft. Expert at turning ambiguity into clarity for complex product strategy, with a focus on scaling AI-native products from 0 to 1.
+              </p>
             </div>
           </div>
         </div>
